@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PDF Viewer</title>
+  <style>
+    :root { --bg: #2b2b2b; --fg: #eee; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--fg); font-family: system-ui, sans-serif; }
+    #viewer { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px; }
+    canvas { display: block; max-width: 100%; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.5); }
+    #msg { padding: 24px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div id="msg">読み込み中…</div>
+  <div id="viewer"></div>
+
+  <script type="module">
+    import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs";
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs";
+
+    // 表示するPDF：?file=xxx.pdf で指定。省略時は sample.pdf
+    const file = new URLSearchParams(location.search).get("file") || "sample.pdf";
+    document.title = file.split("/").pop();
+
+    const viewer = document.getElementById("viewer");
+    const msg = document.getElementById("msg");
+    let pdf;
+
+    async function render() {
+      viewer.innerHTML = "";
+      const width = Math.min(viewer.clientWidth - 24, 1000);
+      const dpr = window.devicePixelRatio || 1;
+
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const base = page.getViewport({ scale: 1 });
+        const vp = page.getViewport({ scale: (width / base.width) * dpr });
+
+        const canvas = document.createElement("canvas");
+        canvas.width = vp.width;
+        canvas.height = vp.height;
+        canvas.style.width = vp.width / dpr + "px";
+        viewer.appendChild(canvas);
+
+        await page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise;
+      }
+    }
+
+    try {
+      pdf = await pdfjsLib.getDocument(file).promise;
+      msg.remove();
+      await render();
+
+      let t;
+      addEventListener("resize", () => { clearTimeout(t); t = setTimeout(render, 300); });
+    } catch (e) {
+      msg.textContent = `PDFを読み込めませんでした: ${file}`;
+      console.error(e);
+    }
+  </script>
+</body>
+</html>
