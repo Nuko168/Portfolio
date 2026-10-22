@@ -23,7 +23,7 @@
       "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs";
 
     // 表示するPDF：?file=xxx.pdf で指定。省略時は sample.pdf
-    const file = new URLSearchParams(location.search).get("file") || "sample.pdf";
+    const file = new URLSearchParams(location.search).get("file") || "Sample.pdf";
     document.title = file.split("/").pop();
 
     const viewer = document.getElementById("viewer");
